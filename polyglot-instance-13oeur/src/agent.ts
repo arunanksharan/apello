@@ -17,7 +17,7 @@ import * as silero from '@livekit/agents-plugin-silero';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import MOSAIC_PROMPT from './mosaic-agent';
+import MOSAIC_PROMPT from './mosaic-agent.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, '../.env.local');
