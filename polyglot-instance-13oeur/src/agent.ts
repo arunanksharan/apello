@@ -59,16 +59,45 @@ export default defineAgent({
 
     const agent = new pipeline.VoicePipelineAgent(
       vad,
-      new deepgram.STT(),
-      new openai.LLM(),
+      new deepgram.STT({
+        language: 'en',
+        detectLanguage: true,
+        punctuate: true,
+        smartFormat: true,
+        profanityFilter: true,
+        dictation: true,
+        diarize: true,
+        numerals: true,
+        keywords: [],
+        endpointing: 0.3,
+        fillerWords: true,
+        interimResults: true,
+        sampleRate: 44100,
+        numChannels: 1,
+        model: 'nova-3-general',
+      }),
+      new openai.LLM({ model: 'gpt-4o-mini' }),
       new elevenlabs.TTS({
-        voice: { id: 'd0grukerEzs069eKIauC', name: 'Prabhu', category: 'premade' },
+        voice: {
+          id: 'd0grukerEzs069eKIauC',
+          name: 'Monica',
+          category: 'premade',
+          settings: {
+            stability: 0.4,
+            similarity_boost: 0.75,
+            style: 0.9,
+            use_speaker_boost: true,
+          },
+        },
+        modelID: 'eleven_flash_v2_5',
+        encoding: 'pcm_44100',
+        languageCode: 'en',
       }),
       { chatCtx: initialContext },
     );
     agent.start(ctx.room, participant);
 
-    await agent.say('Hi! I am Prabhu from Mosaic Investments. How can I help you today?', true);
+    await agent.say('Hi! I am Monica from Mosaic Investments. How can I help you today?', true);
   },
 });
 
