@@ -10,6 +10,7 @@ from livekit.agents import (
     llm,
     metrics,
 )
+from livekit.plugins import elevenlabs
 from livekit.agents.pipeline import VoicePipelineAgent
 from livekit.plugins import (
     cartesia,
@@ -17,6 +18,7 @@ from livekit.plugins import (
     deepgram,
     noise_cancellation,
     silero,
+    elevenlabs,
     turn_detector,
 )
 from mosaic_prompt import MOSAIC_PROMPT
@@ -28,6 +30,54 @@ logger = logging.getLogger("voice-agent")
 
 def prewarm(proc: JobProcess):
     proc.userdata["vad"] = silero.VAD.load()
+
+
+class LLMOutputProcessedVoiceAgent(VoicePipelineAgent):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(
+            **kwargs
+        #     instructions="""
+        #         You are a helpful agent that thinks through problems step by step.
+        #         When reasoning through a complex question, wrap your thinking in <think></think> tags.
+        #         After you've thought through the problem, provide your final answer.
+        #     """,
+        #     stt=deepgram.STT(),
+        #     llm=openai.LLM.with_groq(model="deepseek-r1-distill-llama-70b"),
+        #     tts=openai.TTS(),
+        #     vad=silero.VAD.load()
+        )
+    
+    # async def on_enter(self):
+    #     self.session.generate_reply()
+
+    async def llm_node(
+        self, chat_ctx, tools, model_settings=None
+    ):
+        activity = self._Agent__get_activity_or_raise()
+        assert activity.llm is not None, "llm_node called but no LLM node is available"
+        
+        async def process_stream():
+            async with activity.llm.chat(chat_ctx=chat_ctx, tools=tools, tool_choice=None) as stream:
+                async for chunk in stream:
+                    print(f"chunk in llm node: {chunk}")
+                    if chunk is None:
+                        continue
+
+                    content = getattr(chunk.delta, 'content', None) if hasattr(chunk, 'delta') else str(chunk)
+                    if content is None:
+                        yield chunk
+                        continue
+
+                    processed_content = content.replace("*", "").replace("#", "")
+
+                    if processed_content != content:
+                        if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'content'):
+                            chunk.delta.content = processed_content
+                        else:
+                            chunk = processed_content
+
+                    yield chunk
+
 
 
 async def entrypoint(ctx: JobContext):
@@ -51,7 +101,7 @@ async def entrypoint(ctx: JobContext):
         vad=ctx.proc.userdata["vad"],
         stt=deepgram.STT(),
         llm=openai.LLM(model="gpt-4o-mini"),
-        tts=cartesia.TTS(voice="638efaaa-4d0c-442e-b701-3fae16aad012"),
+        tts=elevenlabs.TTS(voice_id="6ZUrEGyu8GFMwnHbvLhv2", model="eleven_flash_v2_5"),
         # use LiveKit's transformer-based turn detector
         turn_detector=turn_detector.EOUModel(),
         # minimum delay for endpointing, used when turn detector believes the user is done with their turn
