@@ -1,5 +1,5 @@
 beautifulsoup4==4.12.3
 pypdf==4.3.1
 tiktoken==0.7.0
-pipecat-ai[daily,cartesia,openai,silero,elevenlabs]
+pipecat-ai[daily,cartesia,openai,silero,elevenlabs,deepgram]
 python-dotenv==1.0.1
